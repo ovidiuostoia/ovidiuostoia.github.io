@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=900, height=600">
+  <title>Valentine's Day Proposal</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #ffb6c1 0%, #ffe4e1 100%);
+      background-image: url('background.jpg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 900px;
+      height: 600px;
+      background: #fff0f6;
+      border-radius: 32px;
+      box-shadow: 0 8px 32px rgba(255, 105, 180, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .title {
+      font-size: 2.5rem;
+      color: #d72660;
+      margin-bottom: 60px;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      text-align: center;
+    }
+    .button-row {
+      display: flex;
+      gap: 40px;
+      margin-top: 20px;
+    }
+    .btn {
+      font-size: 1rem;
+      padding: 24px 48px;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      box-shadow: 0 4px 16px rgba(255, 105, 180, 0.1);
+    }
+    .btn-yes {
+      background: #ec038b;
+      color: #fff;
+    }
+    .btn-no {
+      background: #b0b0b0;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">Cristina, will you be my valentine?</div>
+    <div id="yayText" style="display:none;font-size:2.2rem;color:#d72660;margin-top:20px;font-weight:bold;text-align:center;">🎉 YAY!! 🎉</div>
+    <div class="button-row" id="buttonRow">
+      <button class="btn btn-yes" id="yesBtn">Yes</button>
+      <button class="btn btn-no" id="noBtn">No</button>
+    </div>
+    <div id="happyGif" style="display:none;margin-top:30px;text-align:center;">
+      <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXUwbW0wMGRiNzJ0NWcyZXQ0MnFrdnA3cHN3N2pyOW00Mjg5amRxbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/75ZaxapnyMp2w/giphy.gif " alt="Happy" style="width:300px;height:auto;border-radius:16px;box-shadow:0 4px 16px rgba(255,105,180,0.2);">
+    </div>
+    <canvas id="fireworks" width="900" height="600" style="position:absolute;top:0;left:0;width:900px;height:600px;pointer-events:none;display:none;"></canvas>
+  </div>
+  <script>
+    // Yes button grows as mouse gets closer
+    const yesBtn = document.getElementById('yesBtn');
+    const container = document.querySelector('.container');
+    document.addEventListener('mousemove', (e) => {
+      const rect = yesBtn.getBoundingClientRect();
+      const btnCenterX = rect.left + rect.width / 2;
+      const btnCenterY = rect.top + rect.height / 2;
+      const dist = Math.hypot(e.clientX - btnCenterX, e.clientY - btnCenterY);
+      let scale = 1 + Math.max(0, 1.2 - dist / 200);
+      scale = Math.min(scale, 2.2);
+      yesBtn.style.transform = `scale(${scale})`;
+    });
+
+    // No button moves away from mouse
+    const noBtn = document.getElementById('noBtn');
+    let noBtnPos = { x: 0, y: 0 };
+    const boxRect = container.getBoundingClientRect();
+    // Initial position
+    noBtn.style.position = 'relative';
+    noBtn.style.left = '0px';
+    noBtn.style.top = '0px';
+    document.addEventListener('mousemove', (e) => {
+      const rect = noBtn.getBoundingClientRect();
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      const btnX = rect.left + rect.width / 2;
+      const btnY = rect.top + rect.height / 2;
+      const dist = Math.hypot(mouseX - btnX, mouseY - btnY);
+      if (dist < 120) {
+        // Move away
+        const angle = Math.atan2(btnY - mouseY, btnX - mouseX);
+        let moveX = Math.cos(angle) * 60;
+        let moveY = Math.sin(angle) * 60;
+        // Clamp within container
+        let newLeft = noBtnPos.x + moveX;
+        let newTop = noBtnPos.y + moveY;
+        // Limit movement so button stays inside container
+        const maxLeft = boxRect.width / 2 - 120;
+        const minLeft = -boxRect.width / 2 + 120;
+        const maxTop = boxRect.height / 2 - 60;
+        const minTop = -boxRect.height / 2 + 60;
+        newLeft = Math.max(minLeft, Math.min(maxLeft, newLeft));
+        newTop = Math.max(minTop, Math.min(maxTop, newTop));
+        noBtn.style.left = `${newLeft}px`;
+        noBtn.style.top = `${newTop}px`;
+        noBtnPos.x = newLeft;
+        noBtnPos.y = newTop;
+      }
+    });
+
+    // Fireworks effect
+    const fireworksCanvas = document.getElementById('fireworks');
+    const ctx = fireworksCanvas.getContext('2d');
+    let fireworks = [];
+    function randomColor() {
+      const colors = ['#ff69b4', '#ffd700', '#00e6e6', '#ff6347', '#a7142a', '#fff'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+    function Firework(x, y) {
+      this.x = x;
+      this.y = y;
+      this.particles = [];
+      for (let i = 0; i < 32; i++) {
+        const angle = (Math.PI * 2 * i) / 32;
+        const speed = Math.random() * 4 + 2;
+        this.particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          alpha: 1,
+          color: randomColor(),
+        });
+      }
+    }
+    Firework.prototype.update = function() {
+      this.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        p.alpha -= 0.012;
+      });
+    };
+    Firework.prototype.draw = function(ctx) {
+      this.particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.restore();
+      });
+    };
+    function animateFireworks() {
+      ctx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+      fireworks.forEach(fw => {
+        fw.update();
+        fw.draw(ctx);
+      });
+      fireworks = fireworks.filter(fw => fw.particles.some(p => p.alpha > 0));
+      if (fireworks.length > 0) {
+        requestAnimationFrame(animateFireworks);
+      } else {
+        fireworksCanvas.style.display = 'none';
+      }
+    }
+    yesBtn.addEventListener('click', () => {
+      // Hide buttons
+      document.getElementById('buttonRow').style.display = 'none';
+      // Show YAY!! text
+      document.getElementById('yayText').style.display = 'block';
+      // Show happy gif after a short delay
+      setTimeout(() => {
+        document.getElementById('happyGif').style.display = 'block';
+      }, 800);
+      // Fireworks
+      fireworksCanvas.style.display = 'block';
+      for (let i = 0; i < 5; i++) {
+        const x = Math.random() * 700 + 100;
+        const y = Math.random() * 400 + 100;
+        fireworks.push(new Firework(x, y));
+      }
+      animateFireworks();
+    });
+  </script>
+</body>
+</html>
